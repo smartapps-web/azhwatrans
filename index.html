@@ -1591,26 +1591,31 @@ function calculateDuration() {
         const d1 = new Date(`${start}T${timeStart}`);
         const d2 = new Date(`${end}T${timeEnd}`);
         
-        // Cek jika waktu pulang sebelum berangkat
         if (d2 < d1) {
             alert("Tanggal/Jam pulang tidak boleh sebelum berangkat!");
             document.getElementById('f-date-end').value = start;
-            info.innerText = "0";
+            info.innerText = "0 Jam";
             return;
         }
 
-        const diffMs = d2 - d1; // Selisih dalam milidetik
-        const totalHours = Math.floor(diffMs / (1000 * 60 * 60)); // Total jam
+        const diffMs = d2 - d1;
+        const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
         
-        const days = Math.floor(totalHours / 24); // Hitung jumlah hari
-        const hours = totalHours % 24; // Sisa jam setelah dibagi 24
+        const days = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
         
-        // Tampilkan format Hari dan Jam
-        let result = "";
-        if (days > 0) result += `${days} Hari `;
-        if (hours > 0) result += `${hours} Jam`;
+        // Logika tampilan yang dinamis:
+        let result = [];
         
-        info.innerText = result || "Kurang dari 1 Jam";
+        if (days > 0) {
+            result.push(`${days} Hari`);
+        }
+        if (hours > 0) {
+            result.push(`${hours} Jam`);
+        }
+        
+        // Jika 0 jam dan 0 hari (kurang dari 1 jam), tampilkan pesan
+        info.innerText = result.length > 0 ? result.join(' ') : "Kurang dari 1 Jam";
     }
 }
 
