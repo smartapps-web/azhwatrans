@@ -474,22 +474,22 @@
                 <input type="text" id="f-trip" required>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background: #f0f7ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff; margin-bottom: 10px;">
-                <div class="form-group">
-                    <label>📅 Berangkat</label>
-                    <input type="date" id="f-date" required onchange="calculateDuration()">
-                    <input type="time" id="f-time" required style="margin-top:5px;">
-                </div>
-                <div class="form-group">
-                    <label>🏁 Estimasi Pulang</label>
-                    <input type="date" id="f-date-end" required onchange="calculateDuration()">
-                    <input type="time" id="f-time-end" required style="margin-top:5px;">
-                </div>
-            </div>
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background: #f0f7ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff; margin-bottom: 10px;">
+    <div class="form-group">
+        <label>📅 Berangkat</label>
+        <input type="date" id="f-date" required oninput="calculateDuration()">
+        <input type="time" id="f-time" required oninput="calculateDuration()" style="margin-top:5px;">
+    </div>
+    <div class="form-group">
+        <label>🏁 Estimasi Pulang</label>
+        <input type="date" id="f-date-end" required oninput="calculateDuration()">
+        <input type="time" id="f-time-end" required oninput="calculateDuration()" style="margin-top:5px;">
+    </div>
+</div>
 
-            <div style="margin-bottom: 15px; font-size: 0.8rem; color: var(--primary); font-weight: bold;">
-                ⏱️ Durasi Sewa: <span id="f-duration">1</span> Hari
-            </div>
+<div style="margin-bottom: 15px; font-size: 0.8rem; color: var(--primary); font-weight: bold;">
+    ⏱️ Durasi Sewa: <span id="f-duration">1</span>
+</div>
 
             <div class="form-group">
                 <label>🚌 Unit Armada (Bisa pilih lebih dari satu)</label>
@@ -637,7 +637,31 @@
     </div>
 	
     <script>
-	
+
+function hitungHargaOtomatis() {
+    const metode = document.getElementById('f-metode').value; // 'waktu' atau 'km'
+    const durasiWaktu = document.getElementById('f-durasi-waktu').value; // '12' atau '24'
+    const totalKm = parseFloat(document.getElementById('f-km').value) || 0;
+    const biayaTambahan = parseFloat(document.getElementById('f-tambahan').value) || 0;
+    const busId = document.getElementById('f-bus-ids').value.split(',')[0];
+    
+    // Ambil data armada
+    const armada = buses.find(b => b.id == busId);
+    if (!armada) return;
+
+    let hargaDasar = 0;
+
+    if (metode === 'waktu') {
+        hargaDasar = (durasiWaktu === '12') ? armada.tarif12Jam : armada.tarif24Jam;
+    } else {
+        hargaDasar = totalKm * armada.tarifPerKm;
+    }
+
+    const totalHarga = hargaDasar + biayaTambahan;
+    document.getElementById('f-price').value = totalHarga;
+}
+
+
 	// --- PERBAIKAN SISTEM KEAMANAN (ENTER TETAP BISA) ---
 
 document.onkeydown = function(e) {
@@ -1581,41 +1605,40 @@ function saveSchedule(e) {
 
 // FUNGSI HITUNG DURASI (Tambahkan di bawah openScheduleModal)
 function calculateDuration() {
-    const start = document.getElementById('f-date').value;
-    const end = document.getElementById('f-date-end').value;
-    const timeStart = document.getElementById('f-time').value;
-    const timeEnd = document.getElementById('f-time-end').value;
+    // 1. Ambil elemen dengan benar
+    const fDate = document.getElementById('f-date').value;
+    const fTime = document.getElementById('f-time').value;
+    const fDateEnd = document.getElementById('f-date-end').value;
+    const fTimeEnd = document.getElementById('f-time-end').value;
     const info = document.getElementById('f-duration');
 
-    if (start && end && timeStart && timeEnd) {
-        const d1 = new Date(`${start}T${timeStart}`);
-        const d2 = new Date(`${end}T${timeEnd}`);
+    // 2. Pastikan semua input sudah terisi
+    if (fDate && fTime && fDateEnd && fTimeEnd) {
+        // 3. Gabungkan menjadi format ISO Date (YYYY-MM-DDTHH:mm)
+        const start = new Date(`${fDate}T${fTime}`);
+        const end = new Date(`${fDateEnd}T${fTimeEnd}`);
         
-        if (d2 < d1) {
-            alert("Tanggal/Jam pulang tidak boleh sebelum berangkat!");
-            document.getElementById('f-date-end').value = start;
-            info.innerText = "0 Jam";
+        // Debugging: Cek di Console (F12) apakah waktunya benar
+        console.log("Start:", start, "End:", end);
+
+        const diffMs = end - start;
+        if (diffMs < 0) {
+            info.innerText = "⚠️ Tanggal/Jam pulang tidak boleh mendahului keberangkatan";
             return;
         }
 
-        const diffMs = d2 - d1;
+        // 4. Hitung durasi total dalam jam
         const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
-        
         const days = Math.floor(totalHours / 24);
         const hours = totalHours % 24;
         
-        // Logika tampilan yang dinamis:
-        let result = [];
+        // 5. Tampilkan hasilnya
+        let result = "";
+        if (days > 0) result += days + " Hari ";
+        if (hours > 0) result += hours + " Jam";
         
-        if (days > 0) {
-            result.push(`${days} Hari`);
-        }
-        if (hours > 0) {
-            result.push(`${hours} Jam`);
-        }
-        
-        // Jika 0 jam dan 0 hari (kurang dari 1 jam), tampilkan pesan
-        info.innerText = result.length > 0 ? result.join(' ') : "Kurang dari 1 Jam";
+        // Update teks ke span, dan pastikan di HTML kamu sudah hapus kata "Hari" statis
+        info.innerText = result.trim() || "0 Jam";
     }
 }
 
@@ -2004,7 +2027,7 @@ Berikut adalah rincian reservasi Anda:
 📍 *Trip:* ${s.trip}
 📅 *Berangkat:* ${formatDateDisplay(s.date)} (Jam ${s.time})
 🏁 *Estimasi Pulang:* ${formatDateDisplay(s.dateEnd)} (Jam ${s.timeEnd})
-⏳ *Durasi:* ${s.duration || 1} Hari
+⏳ *Durasi:* ${s.duration || 1}
 🚌 *Armada:* ${armadaDisplay}
 🔢 *Kapasitas:* ${s.seats || '-'} Seat
 ✨ *Fasilitas:* ${semuaFasilitas || '-'}
@@ -2164,7 +2187,7 @@ Jika ada pertanyaan lebih lanjut, silakan hubungi kami kembali. Sampai jumpa di 
                     <tr>
                         <td>
                             <b>Sewa Mobil Listrik</b><br>
-                            <small>Periode: ${formatDateDisplay(s.date)} s/d ${formatDateDisplay(s.dateEnd)} (${s.duration || 1} Hari)</small>
+                            <small>Periode: ${formatDateDisplay(s.date)} s/d ${formatDateDisplay(s.dateEnd)} (${s.duration || 1})</small>
                         </td>
                         <td style="text-align:right"><b>${formatRp(s.price)}</b></td>
                     </tr>
