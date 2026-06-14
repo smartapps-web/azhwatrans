@@ -1583,17 +1583,34 @@ function saveSchedule(e) {
 function calculateDuration() {
     const start = document.getElementById('f-date').value;
     const end = document.getElementById('f-date-end').value;
+    const timeStart = document.getElementById('f-time').value;
+    const timeEnd = document.getElementById('f-time-end').value;
     const info = document.getElementById('f-duration');
-    if (start && end) {
-        const d1 = new Date(start);
-        const d2 = new Date(end);
-        const diffTime = d2 - d1;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    if (start && end && timeStart && timeEnd) {
+        const d1 = new Date(`${start}T${timeStart}`);
+        const d2 = new Date(`${end}T${timeEnd}`);
+        
+        // Cek jika waktu pulang sebelum berangkat
         if (d2 < d1) {
-            alert("Tanggal pulang tidak boleh sebelum tanggal berangkat!");
+            alert("Tanggal/Jam pulang tidak boleh sebelum berangkat!");
             document.getElementById('f-date-end').value = start;
-            info.innerText = "1";
-        } else { info.innerText = diffDays; }
+            info.innerText = "0";
+            return;
+        }
+
+        const diffMs = d2 - d1; // Selisih dalam milidetik
+        const totalHours = Math.floor(diffMs / (1000 * 60 * 60)); // Total jam
+        
+        const days = Math.floor(totalHours / 24); // Hitung jumlah hari
+        const hours = totalHours % 24; // Sisa jam setelah dibagi 24
+        
+        // Tampilkan format Hari dan Jam
+        let result = "";
+        if (days > 0) result += `${days} Hari `;
+        if (hours > 0) result += `${hours} Jam`;
+        
+        info.innerText = result || "Kurang dari 1 Jam";
     }
 }
 
